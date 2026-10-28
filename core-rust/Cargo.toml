@@ -1,0 +1,11 @@
+[package]
+name = "signer-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+c2pa = { version = "0.91.7", features = ["file_io", "rust_native_crypto"] }
+clap = { version = "4.6.7", features = ["derive", "env"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"

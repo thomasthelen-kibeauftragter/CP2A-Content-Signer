@@ -1,0 +1,6 @@
+services:
+  signer:
+    build: .
+    ports: ["8080:8080"]
+    # Mount your own production credentials instead of the bundled DEV certs:
+    # volumes: ["./certs:/etc/c2pa:ro"]
