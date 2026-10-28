@@ -1,3 +1,8 @@
+const KEY = "cp2a_api_key";
+export const getApiKey = () => sessionStorage.getItem(KEY) ?? "";
+export const setApiKey = (k: string) => sessionStorage.setItem(KEY, k);
+const authHeaders = (): HeadersInit => (getApiKey() ? { "X-API-Key": getApiKey() } : {});
+
 export interface SignParams {
   file: File;
   model: string;
@@ -23,7 +28,7 @@ export async function signImage(p: SignParams): Promise<Blob> {
   fd.append("creator", p.creator);
   if (p.copyright) fd.append("copyright", p.copyright);
   if (p.prompt) fd.append("prompt_optional", p.prompt);
-  const res = await fetch("/api/v1/sign", { method: "POST", body: fd });
+  const res = await fetch("/api/v1/sign", { method: "POST", body: fd, headers: authHeaders() });
   return res.ok ? res.blob() : fail(res);
 }
 
@@ -39,6 +44,6 @@ export interface Inspection {
 export async function inspectImage(file: File): Promise<Inspection> {
   const fd = new FormData();
   fd.append("image", file);
-  const res = await fetch("/api/v1/inspect", { method: "POST", body: fd });
+  const res = await fetch("/api/v1/inspect", { method: "POST", body: fd, headers: authHeaders() });
   return res.ok ? res.json() : fail(res);
 }

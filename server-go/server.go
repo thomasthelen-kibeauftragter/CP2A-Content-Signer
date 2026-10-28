@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"io"
@@ -22,6 +23,8 @@ type Config struct {
 	RatePerMinute  int
 	Timeout        time.Duration
 	StaticDir      string
+	APIKey         string // if set, /api/v1/* requires it (Bearer or X-API-Key)
+	TrustProxy     bool   // use X-Forwarded-For for rate limiting (behind a reverse proxy)
 }
 
 type Server struct {
@@ -50,7 +53,11 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) limited(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !s.rl.allow(clientIP(r)) {
+		if s.cfg.APIKey != "" && !s.authorized(r) {
+			writeErr(w, http.StatusUnauthorized, "missing or invalid API key")
+			return
+		}
+		if !s.rl.allow(s.clientIP(r)) {
 			writeErr(w, http.StatusTooManyRequests, "rate limit exceeded")
 			return
 		}
@@ -190,7 +197,22 @@ func writeErr(w http.ResponseWriter, code int, msg string) {
 	writeJSON(w, code, map[string]any{"ok": false, "error": msg})
 }
 
-func clientIP(r *http.Request) string {
+func (s *Server) authorized(r *http.Request) bool {
+	key := r.Header.Get("X-API-Key")
+	if k, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok {
+		key = k
+	}
+	return subtle.ConstantTimeCompare([]byte(key), []byte(s.cfg.APIKey)) == 1
+}
+
+func (s *Server) clientIP(r *http.Request) string {
+	if s.cfg.TrustProxy {
+		// last entry is the one appended by our own proxy; earlier ones are client-controlled
+		parts := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+		if ip := strings.TrimSpace(parts[len(parts)-1]); ip != "" {
+			return ip
+		}
+	}
 	h, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

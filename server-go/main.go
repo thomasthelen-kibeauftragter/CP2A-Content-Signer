@@ -34,8 +34,10 @@ func main() {
 		RatePerMinute:  envInt("RATE_LIMIT_PER_MIN", 60),
 		Timeout:        time.Duration(envInt("SIGN_TIMEOUT_SEC", 30)) * time.Second,
 		StaticDir:      os.Getenv("STATIC_DIR"),
+		APIKey:         os.Getenv("API_KEY"),
+		TrustProxy:     os.Getenv("TRUST_PROXY") == "true",
 	})
-	addr := env("ADDR", ":8080")
+	addr := env("ADDR", ":"+env("PORT", "8080"))
 	log.Printf("api-server listening on %s (signer=%s)", addr, runner.Bin)
 	log.Fatal((&http.Server{Addr: addr, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}).ListenAndServe())
 }

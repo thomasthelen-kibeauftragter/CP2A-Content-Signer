@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -102,5 +103,30 @@ func TestInspectAndHealthAndRateLimit(t *testing.T) {
 	}
 	if codes[0] != 200 || codes[2] != 429 {
 		t.Fatalf("codes %v", codes)
+	}
+}
+
+func TestAPIKey(t *testing.T) {
+	s := NewServer(&fakeRunner{}, Config{MaxUploadBytes: 1 << 20, Workers: 1, RatePerMinute: 100, Timeout: time.Second, APIKey: "secret"})
+	ts := httptest.NewServer(s.Handler())
+	defer ts.Close()
+	r := post(t, ts.URL+"/api/v1/inspect", png, nil)
+	r.Body.Close()
+	if r.StatusCode != 401 {
+		t.Fatalf("want 401, got %d", r.StatusCode)
+	}
+	req, _ := http.NewRequest("POST", ts.URL+"/api/v1/inspect", nil)
+	req.Header.Set("Authorization", "Bearer secret")
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, _ := mw.CreateFormFile("image", "x.png")
+	fw.Write(png)
+	mw.Close()
+	req.Body = io.NopCloser(&buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	resp, _ := http.DefaultClient.Do(req)
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("want 200 with key, got %d", resp.StatusCode)
 	}
 }

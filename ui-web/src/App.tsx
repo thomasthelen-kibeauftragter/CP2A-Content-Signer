@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Dropzone from "./Dropzone";
-import { Inspection, inspectImage, signImage } from "./api";
+import { Inspection, getApiKey, inspectImage, setApiKey, signImage } from "./api";
 
 const MODELS = ["FLUX.1", "SDXL", "Midjourney", "ComfyUI", "Custom"];
 
@@ -175,6 +175,16 @@ export default function App() {
           </button>
         ))}
       </div>
+      <label className="mb-4 block text-sm text-slate-600">
+        API key (only if the server requires one)
+        <input
+          type="password"
+          autoComplete="off"
+          defaultValue={getApiKey()}
+          onChange={(e) => setApiKey(e.target.value)}
+          className={field}
+        />
+      </label>
       {tab === "sign" ? <SignTab /> : <VerifyTab />}
     </main>
   );
