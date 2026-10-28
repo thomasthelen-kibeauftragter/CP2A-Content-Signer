@@ -37,11 +37,20 @@ CLI: `signer-core --input in.jpg --output out.jpg --model "FLUX.1" --author "Cre
 `c2pa.created` action with `digitalSourceType = trainedAlgorithmicMedia` and `softwareAgent` = model,
 `stds.schema-org.CreativeWork` (author, optional copyright), and `org.cp2a.ai_generation` (custom assertion).
 
-## Important: certificates
-`core-rust/certs/` holds a **dev-only, self-signed** chain (regenerate with `make certs`). It is not on the C2PA
-trust list, so validators such as contentcredentials.org/verify will show the manifest as intact but with an
-**unknown/untrusted signer**. For production badges, obtain a certificate from a C2PA-trusted CA and mount it via
-`C2PA_CERT` / `C2PA_KEY`. Never use the bundled key for real provenance claims.
+## Certificates
+By default the service uses the **dev-only** chain in `core-rust/certs/` (regenerate with `make certs`) and logs a
+warning at startup. It is not on the C2PA trust list: validators show the signature as intact but the signer as
+**untrusted**, and the UI marks this with a yellow notice. Never use the bundled key for real provenance claims.
+
+For production, inject a certificate from a C2PA-trusted CA without touching code (first match wins):
+
+| Variable | Meaning |
+|---|---|
+| `C2PA_CERT_PEM`, `C2PA_KEY_PEM` | PEM *contents* (set both), e.g. from a secret manager; leaf first, then intermediates |
+| `C2PA_CERT`, `C2PA_KEY` | Paths to PEM files, e.g. a Docker volume: `-v ./certs:/etc/c2pa:ro -e C2PA_CERT=/etc/c2pa/prod.certs -e C2PA_KEY=/etc/c2pa/prod.key` |
+| *(none)* | bundled DEV certificate |
+
+The key must be PKCS#8 PEM, ES256 (P-256). Do not commit real keys.
 
 ## ComfyUI
 Copy `comfyui-node/` into `ComfyUI/custom_nodes/c2pa_sign/` and add **C2PA Sign Image** after your decode node

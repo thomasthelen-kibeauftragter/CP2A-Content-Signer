@@ -16,7 +16,7 @@ export default function Dropzone({ file, onFile }: { file: File | null; onFile: 
     <div
       role="button"
       tabIndex={0}
-      aria-label="Upload an image: drop a file here or press Enter to browse"
+      aria-label="Bild hochladen: Datei hier ablegen oder Enter drücken"
       onClick={() => input.current?.click()}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
       onDragOver={(e) => {
@@ -43,11 +43,11 @@ export default function Dropzone({ file, onFile }: { file: File | null; onFile: 
       />
       {preview ? (
         <>
-          <img src={preview} alt="Preview" className="max-h-56 rounded" />
+          <img src={preview} alt="Vorschau" className="max-h-56 rounded" />
           <p className="mt-2 text-sm text-slate-600">{file?.name}</p>
         </>
       ) : (
-        <p className="text-slate-600">Drag &amp; drop a JPEG, PNG or WebP here, or click to browse</p>
+        <p className="text-slate-600">JPEG, PNG oder WebP hierher ziehen oder klicken</p>
       )}
     </div>
   );

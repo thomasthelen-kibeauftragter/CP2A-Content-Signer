@@ -22,8 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=rust /src/target/release/signer-core /usr/local/bin/signer-core
 COPY --from=go /api-server /usr/local/bin/api-server
 COPY --from=ui /src/dist /srv/ui
-COPY core-rust/certs/sample.certs core-rust/certs/sample.key /etc/c2pa/
-ENV C2PA_CERT=/etc/c2pa/sample.certs C2PA_KEY=/etc/c2pa/sample.key STATIC_DIR=/srv/ui PORT=8080 TRUST_PROXY=true
+WORKDIR /app
+# DEV fallback (relative default paths). Override with C2PA_CERT_PEM/C2PA_KEY_PEM or C2PA_CERT/C2PA_KEY.
+COPY core-rust/certs/sample.certs core-rust/certs/sample.key /app/certs/
+ENV STATIC_DIR=/srv/ui PORT=8080 TRUST_PROXY=true
 USER signer
 EXPOSE 8080
 CMD ["api-server"]
