@@ -1,0 +1,5 @@
+target/
+node_modules/
+dist/
+server-go/bin/
+__pycache__/
