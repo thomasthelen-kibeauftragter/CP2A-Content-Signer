@@ -1,5 +1,7 @@
+mod overlay;
+
 use std::{
-    fs::{self, File},
+    fs::{self},
     io::Cursor,
     path::{Path, PathBuf},
     process::ExitCode,
@@ -43,6 +45,18 @@ struct Cli {
     /// Private key (PKCS#8 PEM)
     #[arg(long, env = "C2PA_KEY", default_value = "certs/sample.key")]
     key: PathBuf,
+    /// EU AI label icon to burn into the image before signing (omit for no visible label)
+    #[arg(long, value_enum)]
+    icon: Option<overlay::Icon>,
+    #[arg(long, value_enum, default_value = "bottom-right")]
+    icon_position: overlay::Position,
+    #[arg(long, value_enum, default_value = "black")]
+    icon_color: overlay::Color,
+    /// Icon opacity in percent (1-100)
+    #[arg(long, default_value_t = 100, value_parser = clap::value_parser!(u8).range(1..=100))]
+    icon_opacity: u8,
+    #[arg(long, value_enum, default_value = "medium")]
+    icon_size: overlay::Size,
     /// Inspect an existing file and print its C2PA manifest as JSON
     #[arg(long, value_name = "FILE")]
     inspect: Option<PathBuf>,
@@ -92,9 +106,25 @@ fn sign(cli: &Cli) -> Result<Value> {
     if let Some(p) = &cli.prompt {
         ai["prompt"] = json!(p);
     }
+    let mut source = fs::read(input).with_context(|| format!("reading {}", input.display()))?;
+    if let Some(icon) = cli.icon {
+        let o = overlay::Overlay {
+            icon,
+            position: cli.icon_position,
+            color: cli.icon_color,
+            opacity: cli.icon_opacity,
+            size: cli.icon_size,
+        };
+        source = overlay::apply(&source, overlay::format_for_mime(&format)?, &o)?;
+        ai["visible_label"] = json!({
+            "icon": icon.name(),
+            "position": format!("{:?}", cli.icon_position),
+            "source": "https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content",
+        });
+    }
     builder.add_assertion("org.cp2a.ai_generation", &ai)?;
 
-    let mut src = File::open(input).with_context(|| format!("opening {}", input.display()))?;
+    let mut src = Cursor::new(source);
     let mut dst = fs::OpenOptions::new().read(true).write(true).create(true).truncate(true)
         .open(output).with_context(|| format!("creating {}", output.display()))?;
     builder.sign(signer.as_ref(), &format, &mut src, &mut dst)?;

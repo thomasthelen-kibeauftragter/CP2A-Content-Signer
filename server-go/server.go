@@ -106,6 +106,45 @@ func (s *Server) acquire(ctx context.Context) (func(), error) {
 	}
 }
 
+func oneOf(v, def string, allowed ...string) (string, error) {
+	if v == "" {
+		return def, nil
+	}
+	for _, a := range allowed {
+		if v == a {
+			return v, nil
+		}
+	}
+	return "", errors.New("invalid value: " + v)
+}
+
+// ParseIconOptions validates the icon_* form fields. Empty icon (or "none") means no visible label.
+func ParseIconOptions(get func(string) string) (IconOptions, error) {
+	name := get("icon")
+	if name == "" || name == "none" {
+		return IconOptions{}, nil
+	}
+	var o IconOptions
+	var err error
+	if o.Name, err = oneOf(name, "", "basic", "generated", "modified"); err != nil {
+		return o, errors.New("invalid icon")
+	}
+	if o.Position, err = oneOf(get("icon_position"), "bottom-right", "top-left", "top-center", "top-right",
+		"bottom-left", "bottom-center", "bottom-right"); err != nil {
+		return o, errors.New("invalid icon_position")
+	}
+	if o.Color, err = oneOf(get("icon_color"), "black", "black", "white"); err != nil {
+		return o, errors.New("invalid icon_color")
+	}
+	if o.Size, err = oneOf(get("icon_size"), "medium", "small", "medium", "large"); err != nil {
+		return o, errors.New("invalid icon_size")
+	}
+	if o.Opacity, err = oneOf(get("icon_opacity"), "100", "100", "50"); err != nil {
+		return o, errors.New("invalid icon_opacity")
+	}
+	return o, nil
+}
+
 func (s *Server) handleSign(w http.ResponseWriter, r *http.Request) {
 	dir, err := os.MkdirTemp("", "sign-")
 	if err != nil {
@@ -123,6 +162,11 @@ func (s *Server) handleSign(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "model_name and creator are required")
 		return
 	}
+	icon, err := ParseIconOptions(r.FormValue)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), s.cfg.Timeout)
 	defer cancel()
 	release, err := s.acquire(ctx)
@@ -134,7 +178,7 @@ func (s *Server) handleSign(w http.ResponseWriter, r *http.Request) {
 
 	out := filepath.Join(dir, "out"+ext)
 	_, err = s.runner.Sign(ctx, SignRequest{In: in, Out: out, Model: model, Author: creator,
-		Copyright: r.FormValue("copyright"), Prompt: r.FormValue("prompt_optional")})
+		Copyright: r.FormValue("copyright"), Prompt: r.FormValue("prompt_optional"), Icon: icon})
 	if err != nil {
 		log.Printf("sign failed: %v", err)
 		writeErr(w, 422, err.Error())

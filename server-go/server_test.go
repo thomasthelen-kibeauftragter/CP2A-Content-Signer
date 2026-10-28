@@ -70,6 +70,25 @@ func TestSignReturnsSignedBinary(t *testing.T) {
 	}
 }
 
+func TestIconOptions(t *testing.T) {
+	ts, fr := newTestServer(100)
+	defer ts.Close()
+	resp := post(t, ts.URL+"/api/v1/sign", png, map[string]string{"model_name": "m", "creator": "c",
+		"icon": "generated", "icon_position": "top-left", "icon_color": "white", "icon_opacity": "50"})
+	resp.Body.Close()
+	if resp.StatusCode != 200 || fr.got.Icon != (IconOptions{"generated", "top-left", "white", "medium", "50"}) {
+		t.Fatalf("status %d icon %+v", resp.StatusCode, fr.got.Icon)
+	}
+	for _, bad := range []map[string]string{{"icon": "evil"}, {"icon": "basic", "icon_position": "middle"}, {"icon": "basic", "icon_opacity": "7"}} {
+		bad["model_name"], bad["creator"] = "m", "c"
+		r := post(t, ts.URL+"/api/v1/sign", png, bad)
+		r.Body.Close()
+		if r.StatusCode != 400 {
+			t.Errorf("%v: status %d, want 400", bad, r.StatusCode)
+		}
+	}
+}
+
 func TestSignValidation(t *testing.T) {
 	ts, _ := newTestServer(100)
 	defer ts.Close()

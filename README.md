@@ -33,6 +33,15 @@ the prompt is only embedded if supplied). Config via env: `ADDR`, `SIGNER_BIN`, 
 
 CLI: `signer-core --input in.jpg --output out.jpg --model "FLUX.1" --author "Creator"` and `signer-core --inspect out.jpg`.
 
+## Visible EU label
+Optionally burns one of the official [EU icons for AI-generated content](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content)
+(`basic`, `generated`, `modified`) into the image *before* signing. Form fields for `/sign`: `icon`
+(`basic|generated|modified|none`), `icon_position` (`top|bottom` x `left|center|right`, e.g. `top-left`),
+`icon_color` (`black|white`), `icon_opacity` (`100|50`), `icon_size` (`small|medium|large`). CLI: `--icon ... --icon-position ...`.
+The icon files in `core-rust/assets` are derived from the official black icons (background made transparent); the white
+variant is produced by inversion, not taken from the official set. Re-encoding drops EXIF data. Using the icon is
+voluntary and does not by itself establish compliance with Art. 50 AI Act.
+
 ## Manifest contents
 `c2pa.created` action with `digitalSourceType = trainedAlgorithmicMedia` and `softwareAgent` = model,
 `stds.schema-org.CreativeWork` (author, optional copyright), and `org.cp2a.ai_generation` (custom assertion).

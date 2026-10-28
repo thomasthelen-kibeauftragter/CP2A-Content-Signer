@@ -3,7 +3,10 @@ export const getApiKey = () => sessionStorage.getItem(KEY) ?? "";
 export const setApiKey = (k: string) => sessionStorage.setItem(KEY, k);
 const authHeaders = (): HeadersInit => (getApiKey() ? { "X-API-Key": getApiKey() } : {});
 
+import type { LabelOptions } from "./label";
+
 export interface SignParams {
+  label?: LabelOptions;
   file: File;
   model: string;
   creator: string;
@@ -28,6 +31,13 @@ export async function signImage(p: SignParams): Promise<Blob> {
   fd.append("creator", p.creator);
   if (p.copyright) fd.append("copyright", p.copyright);
   if (p.prompt) fd.append("prompt_optional", p.prompt);
+  if (p.label && p.label.icon !== "none") {
+    fd.append("icon", p.label.icon);
+    fd.append("icon_position", p.label.position);
+    fd.append("icon_color", p.label.color);
+    fd.append("icon_opacity", p.label.opacity);
+    fd.append("icon_size", p.label.size);
+  }
   const res = await fetch("/api/v1/sign", { method: "POST", body: fd, headers: authHeaders() });
   return res.ok ? res.blob() : fail(res);
 }

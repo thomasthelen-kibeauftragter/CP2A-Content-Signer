@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Dropzone from "./Dropzone";
+import LabelPicker from "./LabelPicker";
+import { DEFAULT_LABEL, LabelOptions } from "./label";
 import VerifyPanel from "./VerifyPanel";
 import { Inspection, getApiKey, inspectImage, setApiKey, signImage } from "./api";
 
@@ -28,6 +30,7 @@ function SignTab() {
   const [creator, setCreator] = useState("");
   const [copyright, setCopyright] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [label, setLabel] = useState<LabelOptions>(DEFAULT_LABEL);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   const model = preset === "Custom" ? custom.trim() : preset;
@@ -38,7 +41,7 @@ function SignTab() {
     if (!file) return;
     setStatus({ kind: "busy" });
     try {
-      const blob = await signImage({ file, model, creator: creator.trim(), copyright: copyright.trim(), prompt: prompt.trim() });
+      const blob = await signImage({ file, model, creator: creator.trim(), copyright: copyright.trim(), prompt: prompt.trim(), label });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = file.name.replace(/(\.[^.]+)?$/, "-signed$1");
@@ -52,7 +55,8 @@ function SignTab() {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Dropzone file={file} onFile={setFile} />
+      <Dropzone file={file} onFile={setFile} label={label} />
+      <LabelPicker value={label} onChange={setLabel} />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={euPreset} onChange={(e) => setEuPreset(e.target.checked)} />
         EU AI Act Art. 50 (kennzeichnet das Bild als KI-generiert: trainedAlgorithmicMedia)

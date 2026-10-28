@@ -12,7 +12,11 @@ import (
 // SignRequest holds metadata for one signing job. Paths point at files in a job-private temp dir.
 type SignRequest struct {
 	In, Out, Model, Author, Copyright, Prompt string
+	Icon                                      IconOptions // zero value = no visible label
 }
+
+// IconOptions selects the EU AI label burned into the image. Values are validated by ParseIconOptions.
+type IconOptions struct{ Name, Position, Color, Size, Opacity string }
 
 // Runner abstracts the Rust engine so the HTTP layer can be tested without it.
 type Runner interface {
@@ -31,6 +35,10 @@ func (e *ExecRunner) Sign(ctx context.Context, r SignRequest) (json.RawMessage, 
 	}
 	if r.Prompt != "" {
 		args = append(args, "--prompt", r.Prompt)
+	}
+	if i := r.Icon; i.Name != "" {
+		args = append(args, "--icon", i.Name, "--icon-position", i.Position, "--icon-color", i.Color,
+			"--icon-size", i.Size, "--icon-opacity", i.Opacity)
 	}
 	return e.run(ctx, args)
 }

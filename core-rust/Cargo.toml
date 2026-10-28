@@ -7,5 +7,9 @@ edition = "2024"
 anyhow = "1.0.104"
 c2pa = { version = "0.91.7", features = ["file_io", "rust_native_crypto"] }
 clap = { version = "4.6.7", features = ["derive", "env"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+
+[dev-dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"] }

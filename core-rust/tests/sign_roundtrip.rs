@@ -34,3 +34,27 @@ fn sign_then_inspect_marks_ai_generated() {
     assert!(!o.status.success(), "unsigned file must not inspect OK");
     let _ = fs::remove_dir_all(dir);
 }
+
+#[test]
+fn icon_is_burned_in_and_signature_stays_valid() {
+    let dir = std::env::temp_dir().join(format!("signer-icon-{}", std::process::id()));
+    fs::create_dir_all(&dir).unwrap();
+    let (inp, plain, labelled) = (dir.join("in.png"), dir.join("plain.png"), dir.join("label.png"));
+    // 400x250 solid image so the icon is clearly distinguishable
+    let img = image::RgbaImage::from_pixel(400, 250, image::Rgba([30, 60, 90, 255]));
+    img.save(&inp).unwrap();
+    let sign = |out: &std::path::Path, extra: &[&str]| {
+        let mut a = vec!["--input", inp.to_str().unwrap(), "--output", out.to_str().unwrap(), "--model", "M", "--author", "A"];
+        a.extend_from_slice(extra);
+        assert!(bin().args(a).output().unwrap().status.success());
+    };
+    sign(&plain, &[]);
+    sign(&labelled, &["--icon", "generated", "--icon-position", "top-left"]);
+    let (p, l) = (image::open(&plain).unwrap().to_rgba8(), image::open(&labelled).unwrap().to_rgba8());
+    assert_eq!(p.get_pixel(5, 5), &image::Rgba([30, 60, 90, 255]), "plain image untouched");
+    assert_ne!(p.get_pixel(20, 20), l.get_pixel(20, 20), "icon drawn near top-left");
+    assert_eq!(p.get_pixel(390, 240), l.get_pixel(390, 240), "bottom-right untouched");
+    let o = bin().args(["--inspect", labelled.to_str().unwrap()]).output().unwrap();
+    assert!(String::from_utf8(o.stdout).unwrap().contains("\"validation_state\":\"Valid\""));
+    let _ = fs::remove_dir_all(dir);
+}
